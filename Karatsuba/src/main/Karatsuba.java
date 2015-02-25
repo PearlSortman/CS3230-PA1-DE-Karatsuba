@@ -40,7 +40,7 @@
  * 222380827276161322987671196928949534929902188060
  * 0
  * 
-**********************************************************************************************/
+ **********************************************************************************************/
 
 package main;
 
@@ -48,129 +48,129 @@ import java.io.*;
 import java.util.*;
 
 public class Karatsuba {
-	
+
 	public static final int MAX_DIGITS = 20010;
 	public static final int CUT_OFF = 1000;
 	public static final int BASE = 10;
-	public static int[] resultArray;
+	public static int[] momentumResultArray;
 
 	public static void main(String[] args) {
 		Scanner scanner = new Scanner(System.in);
 		PrintWriter printWriter = new PrintWriter(new BufferedWriter(
 				new OutputStreamWriter(System.out)));
 
-		int numTestCases;
-		int[] arrVelocity, arrMass;
-		arrVelocity = new int[MAX_DIGITS + 1];
-		arrMass = new int[MAX_DIGITS + 1];
-		String velocityStr, massStr;
-
-		numTestCases = scanner.nextInt();
+		int[] velocityArray = new int[MAX_DIGITS + 1];
+		int[] massArray = new int[MAX_DIGITS + 1];
+		int numTestCases = scanner.nextInt();
 
 		for (int i = 1; i <= numTestCases; ++i) {
 			scanner.nextInt(); // BASE already defined as 10
 			scanner.nextLine();
-			velocityStr = scanner.nextLine();
-			massStr = scanner.nextLine();
+			String velocityString = scanner.nextLine();
+			String massString = scanner.nextLine();
 
-			int fpV = scanArray(velocityStr, arrVelocity);
-			int fpM = scanArray(massStr, arrMass);
+			int velocityFixedPoint = scanArray(velocityString, velocityArray);
+			int massFixedPoint = scanArray(massString, massArray);
 
-			resultArray = new int[MAX_DIGITS * 2];
-			int resultLength = multArrays(arrVelocity, arrMass);
-			String output = resultToString(resultArray, resultLength, fpV + fpM);
+			momentumResultArray = new int[MAX_DIGITS * 2];
+			int resultLength = karatsubaMultiply(velocityArray, massArray);
+			String output = resultToString(momentumResultArray, resultLength,
+					velocityFixedPoint + massFixedPoint);
 
 			printWriter.write(trimZeros(output));
 			printWriter.write("\n");
 		}
 		printWriter.close(); // do not forget to use this
 	}
-	
-	private static int karatsubaMultiply(int[] arrVel, int[] arrMass) {
-		//base case:
-		if (arrVel.length<CUT_OFF && arrMass.length<CUT_OFF) {
-			return multArrays(arrVel, arrMass); // quadratic long multiply
+
+	private static int karatsubaMultiply(int[] velocityArray, int[] massArray) {
+		// base case:
+		if (velocityArray.length < CUT_OFF && massArray.length < CUT_OFF) {
+			return multArrays(velocityArray, massArray); // quadratic long
+		} else {
+			result = 
+			return 0;
 		}
-			
-		//splitting by halves:
-//		R = max(length of X, length of Y) / 2;
-//		HighX, LowX = split X at R;
-//		HighY, LowY = split Y at R;
 
-		//recursive calls: 3 times: 
-//		Z0 = karatsubaMultiply(LowX, LowY);
-//		Z2 = karatsubaMultiply(HighX, HighY);
-//		Z1 = karatsubaMultiply(LowX+HIghX, LowY+HighY);
+		// splitting by halves:
+		// R = max(length of X, length of Y) / 2;
+		// HighX, LowX = split X at R;
+		// HighY, LowY = split Y at R;
 
-		//adding and subtracting:
-//		Res = Z2 * B^(2*R) + (Z1-Z2-Z0)*B^R + Z0
+		// recursive calls: 3 times:
+		// Z0 = karatsubaMultiply(LowX, LowY);
+		// Z2 = karatsubaMultiply(HighX, HighY);
+		// Z1 = karatsubaMultiply(LowX+HIghX, LowY+HighY);
 
-		//return:
-		return 0;
-//		return arrResult;
+		// adding and subtracting:
+		// Res = Z2 * B^(2*R) + (Z1-Z2-Z0)*B^R + Z0
+
+		// return:
+		return 0; // size of result as int
 	}
 
-	private static int multArrays(int[] arrVelocity, int[] arrMass) {
-		int sizeVelocity = arrVelocity[arrVelocity.length-1];
-		int sizeMass = arrMass[arrMass.length-1];
-		int d = 0;
+	private static int multArrays(int[] velocityArray, int[] massArray) {
+		int sizeVelocity = velocityArray[velocityArray.length - 1];
+		int sizeMass = massArray[massArray.length - 1];
 		int i = 0;
-		for (d = 0; d < sizeMass; d++) {
+		int j = 0;
+
+		for (i = 0; i < sizeMass; i++) {
 			int carry = 0;
-			for (i = 0; i < sizeVelocity; i++) {
-				resultArray[i + d] += arrVelocity[i] * arrMass[d] + carry;
-				carry = resultArray[i + d] / BASE;
-				resultArray[i + d] %= BASE;
+			for (j = 0; j < sizeVelocity; j++) {
+				momentumResultArray[i + j] += velocityArray[j] * massArray[i]
+						+ carry;
+				carry = momentumResultArray[i + j] / BASE;
+				momentumResultArray[i + j] %= BASE;
 			}
-			resultArray[d + i] += carry;
+			momentumResultArray[i + j] += carry;
 		}
-		return d + i;
+		return i + j; // size of result
 	}
 
-	private static String resultToString(int[] array, int size, int fp) {
-		StringBuilder sb = new StringBuilder(size + 1);
-		fp -= 1;
-		for (int i = size - 1; i >= 0; --i) {
-			if (i == fp) {
-				sb.append('.');
+	private static String resultToString(int[] resultArray, int sizeResult,
+			int fixedPoint) {
+		StringBuilder resultString = new StringBuilder(sizeResult + 1);
+		for (int i = sizeResult - 1; i >= 0; i--) {
+			resultString.append(toDigit(resultArray[i]));
+			if (i == fixedPoint) {
+				resultString.append('.');
 			}
-			sb.append(toDigit(array[i]));
 		}
-
-		return sb.toString();
+		return resultString.toString();
 	}
 
-	private static int scanArray(String s, int[] arr) {
-		int index = 0;
+	private static int scanArray(String inputString, int[] inputArray) {
+		int digitCounter = 0;
 		int fixedPoint = 0;
-		for (int i = s.length() - 1; i >= 0; --i) {
-			if (s.charAt(i) == '.') {
-				fixedPoint = index;
+
+		for (int i = inputString.length() - 1; i >= 0; i--) {
+			if (inputString.charAt(i) == '.') {
+				fixedPoint = digitCounter;
 			} else {
-				arr[index] = parseDigit(s.charAt(i));
-				index++;
+				inputArray[digitCounter] = parseDigit(inputString.charAt(i));
+				digitCounter++;
 			}
 		}
-
-		arr[arr.length - 1] = index; // Store size.
+		inputArray[inputArray.length - 1] = digitCounter; // store size
 		return fixedPoint;
 	}
 
 	private static String trimZeros(String input) {
 		int left = 0;
 		int right = input.length() - 1;
-		int fp = input.indexOf('.');
-		if (fp == -1) {
-			fp = input.length();
+		int fixedPoint = input.indexOf('.');
+		if (fixedPoint == -1) {
+			fixedPoint = input.length();
 		}
 
-		while (left < fp - 1) {
+		while (left < fixedPoint - 1) {
 			if (input.charAt(left) != '0')
 				break;
 			left++;
 		}
 
-		while (right >= fp) {
+		while (right >= fixedPoint) {
 			if (input.charAt(right) != '0') {
 				if (input.charAt(right) == '.')
 					right--;
@@ -179,7 +179,7 @@ public class Karatsuba {
 			right--;
 		}
 
-		if (left >= fp)
+		if (left >= fixedPoint)
 			return "0" + input.substring(left, right + 1);
 		return input.substring(left, right + 1);
 	}
