@@ -45,14 +45,18 @@
 package main;
 
 import java.io.*;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.*;
 
 public class Karatsuba {
 
-	public static final int MAX_DIGITS = 20010;
-	public static final int CUT_OFF = 1000;
+//	public static final int MAX_DIGITS = 20010;
+//	public static final int CUT_OFF = 20010;
+	public static final int MAX_DIGITS = 12;
+	public static final int CUT_OFF = 2;
 	public static final int BASE = 10;
-	public static int[] momentumResultArray;
+	public static int sizeResult = 0;
 
 	public static void main(String[] args) {
 		Scanner scanner = new Scanner(System.in);
@@ -69,63 +73,201 @@ public class Karatsuba {
 			String velocityString = scanner.nextLine();
 			String massString = scanner.nextLine();
 
+//			long startTime = System.currentTimeMillis();
+
 			int velocityFixedPoint = scanArray(velocityString, velocityArray);
 			int massFixedPoint = scanArray(massString, massArray);
+			int finalFP = velocityFixedPoint + massFixedPoint;
 
-			momentumResultArray = new int[MAX_DIGITS * 2];
-			int resultLength = karatsubaMultiply(velocityArray, massArray);
-			String output = resultToString(momentumResultArray, resultLength,
+			int[] momentumResultArray = new int[MAX_DIGITS * 2];
+			momentumResultArray = karatsubaMultiply(velocityArray, massArray);
+			System.out.println("sizeResult: " + sizeResult);
+			System.out.println("fixedPoint: " + finalFP);
+			String output = resultToString(momentumResultArray, sizeResult,
 					velocityFixedPoint + massFixedPoint);
 
 			printWriter.write(trimZeros(output));
 			printWriter.write("\n");
+//
+//			long endTime = System.currentTimeMillis();
+//			NumberFormat formatter = new DecimalFormat("#0.00000");
+//			System.out.println("Execution time is "
+//					+ (formatter.format((endTime - startTime) / 1000d))
+//					+ " seconds");
 		}
 		printWriter.close(); // do not forget to use this
 	}
 
-	private static int karatsubaMultiply(int[] velocityArray, int[] massArray) {
-		// base case:
-		if (velocityArray.length < CUT_OFF && massArray.length < CUT_OFF) {
+	private static int[] karatsubaMultiply(int[] velocityArray, int[] massArray) {
+		// BASE CASE:
+		if ((velocityArray[velocityArray.length - 1] <= CUT_OFF)
+				|| (massArray[massArray.length - 1] <= CUT_OFF)) {
 			return multArrays(velocityArray, massArray); // quadratic long
 		} else {
-			result = 
-			return 0;
+			int sizeVelocity = velocityArray[velocityArray.length - 1];
+			int sizeMass = massArray[massArray.length - 1];
+			int splitIndex = (int) (Math
+					.floor(Math.max(sizeVelocity, sizeMass) / 2));
+
+			int[] highVelocity = splitArray(velocityArray, splitIndex, "high");
+			int[] lowVelocity = splitArray(velocityArray, splitIndex, "low");
+
+			int[] highMass = splitArray(massArray, splitIndex, "high");
+			int[] lowMass = splitArray(massArray, splitIndex, "low");
+
+			int[] Z0 = karatsubaMultiply(lowVelocity, lowMass);
+			int[] Z1 = karatsubaMultiply(highVelocity, highMass);
+			int[] Z2 = karatsubaMultiply(addArrays(lowVelocity, highVelocity),
+					addArrays(lowMass, highMass));
+			
+			int[] R1temp = stringToArray(Integer.toString((int) Math.pow(BASE, (2*splitIndex))));
+			int[] R2temp = stringToArray(Integer.toString((int) Math.pow(BASE, splitIndex)));
+			
+			int[] R1 = multArrays(Z1, R1temp);
+			int[] subtractZ1 = subtractArrays(Z2, Z1);
+			int[] totalDiff = subtractArrays(subtractZ1, Z0);
+//			int[] R2 = multArrays((subtractArrays(Z2, subtractArrays(Z1, Z0))),
+//					R2temp);
+			int[] R2 = multArrays(totalDiff, R2temp);
+			int[] R3 = Z0;
+
+			return addArrays(addArrays(R1, R2), R3);
 		}
-
-		// splitting by halves:
-		// R = max(length of X, length of Y) / 2;
-		// HighX, LowX = split X at R;
-		// HighY, LowY = split Y at R;
-
-		// recursive calls: 3 times:
-		// Z0 = karatsubaMultiply(LowX, LowY);
-		// Z2 = karatsubaMultiply(HighX, HighY);
-		// Z1 = karatsubaMultiply(LowX+HIghX, LowY+HighY);
-
-		// adding and subtracting:
-		// Res = Z2 * B^(2*R) + (Z1-Z2-Z0)*B^R + Z0
-
-		// return:
-		return 0; // size of result as int
 	}
 
-	private static int multArrays(int[] velocityArray, int[] massArray) {
+	private static int[] multArrays(int[] velocityArray, int[] massArray) {
 		int sizeVelocity = velocityArray[velocityArray.length - 1];
 		int sizeMass = massArray[massArray.length - 1];
+		int numDigits = 0;
 		int i = 0;
 		int j = 0;
+		int[] tempResultArray = new int[MAX_DIGITS * 2];
 
 		for (i = 0; i < sizeMass; i++) {
 			int carry = 0;
 			for (j = 0; j < sizeVelocity; j++) {
-				momentumResultArray[i + j] += velocityArray[j] * massArray[i]
+				tempResultArray[i + j] += velocityArray[j] * massArray[i]
 						+ carry;
-				carry = momentumResultArray[i + j] / BASE;
-				momentumResultArray[i + j] %= BASE;
+				carry = tempResultArray[i + j] / BASE;
+				tempResultArray[i + j] %= BASE;
 			}
-			momentumResultArray[i + j] += carry;
+			tempResultArray[i + j] += carry;
 		}
-		return i + j; // size of result
+		
+		int x = tempResultArray.length-2;
+		Boolean numDigitsFound = false;
+		
+		while (!numDigitsFound && x>=0) {
+			if (tempResultArray[x] != 0) {
+				numDigits = x+1;
+				numDigitsFound = true;
+			}
+			x--;
+		}
+		
+		tempResultArray[tempResultArray.length-1] = numDigits;
+		sizeResult = numDigits;
+		return tempResultArray;
+	}
+
+	private static int[] splitArray(int[] array, int splitIndex, String str) {
+		int[] subArray = new int[MAX_DIGITS + 1];
+		int digitCounter = 0;
+		if (str.equals("low")) {
+			for (int i = 0; i < splitIndex; i++) {
+				subArray[i] = array[i];
+				digitCounter++;
+			}
+		} else if (str.equals("high")) {
+			for (int i = splitIndex; i < array[array.length - 1]; i++) {
+				subArray[i-splitIndex] = array[i];
+				digitCounter++;
+			}
+		}
+		subArray[subArray.length - 1] = digitCounter;
+		return subArray;
+	}
+
+	private static int[] addArrays(int[] array1, int[] array2) {
+		int array1Length = array1[array1.length - 1];
+		int array2Length = array2[array2.length - 1];
+		int max = Math.max(array1Length, array2Length);
+		int min = Math.min(array1Length, array2Length);
+
+		int[] sumArray = new int[MAX_DIGITS + 1];
+		int numDigits = 0;
+
+		for (int i = 0; i < min; i++) {
+			sumArray[i] = array1[i] + array2[i];
+			numDigits++;
+		}
+		for (int i = min; i < max; i++) { // in case of uneven length of arrays
+			if (array1Length > array2Length) {
+				sumArray[i] = array1[i];
+			} else {
+				sumArray[i] = array2[i];
+			}
+			numDigits++;
+		}
+		for (int i = 0; i < sumArray.length; i++) {
+			if (sumArray[i] >= 10) {
+				sumArray[i] -= 10;
+				sumArray[i + 1] += 1;
+			}
+		}
+		if (sumArray[numDigits] > 0) {
+			numDigits++;
+		}
+		sumArray[sumArray.length - 1] = numDigits;
+		sizeResult = numDigits;
+		return sumArray;
+	}
+
+	private static int[] subtractArrays(int[] subtractFromArray,
+			int[] subtractThisArray) {
+
+		int subFromArrayLength = subtractFromArray[subtractFromArray.length - 1];
+		int subThisArrayLength = subtractThisArray[subtractThisArray.length - 1];
+		int max = Math.max(subFromArrayLength, subThisArrayLength);
+		int min = Math.min(subFromArrayLength, subThisArrayLength);
+
+		int[] diffArray = new int[MAX_DIGITS * 2];
+		int numDigits = 0;
+
+		for (int i = 0; i < min; i++) {
+			diffArray[i] = subtractFromArray[i] - subtractThisArray[i];
+			numDigits++;
+		}
+		for (int i = min; i < max; i++) {
+			if (subFromArrayLength > subThisArrayLength) {
+				diffArray[i] = subtractFromArray[i];
+			} else {
+				diffArray[i] = subtractThisArray[i];
+			}
+			numDigits++;
+		}
+		for (int i = 0; i < max; i++) {
+			if (diffArray[i] < 0) {
+				diffArray[i] += 10;
+				diffArray[i + 1] -= 1;
+			}
+		}
+		if (diffArray[numDigits] > 0) {
+			numDigits++;
+		}
+		diffArray[diffArray.length - 1] = numDigits;
+		return diffArray;
+	}
+
+	private static int[] stringToArray(String inputString) {
+		int numDigits = 0;
+		int[] array = new int[MAX_DIGITS * 2];
+		for (int i = inputString.length() - 1; i >= 0; i--) {
+			array[numDigits] = parseDigit(inputString.charAt(i));
+			numDigits++;
+		}
+		array[array.length - 1] = numDigits;
+		return array;
 	}
 
 	private static String resultToString(int[] resultArray, int sizeResult,
