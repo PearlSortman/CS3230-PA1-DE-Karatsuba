@@ -45,15 +45,11 @@
 package main;
 
 import java.io.*;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.*;
 
 public class Karatsuba {
 
-//	public static final int MAX_DIGITS = 20010;
-//	public static final int CUT_OFF = 20010;
-	public static final int MAX_DIGITS = 12;
+	public static final int MAX_DIGITS = 20010;
 	public static final int CUT_OFF = 2;
 	public static final int BASE = 10;
 	public static int sizeResult = 0;
@@ -73,31 +69,24 @@ public class Karatsuba {
 			String velocityString = scanner.nextLine();
 			String massString = scanner.nextLine();
 
-//			long startTime = System.currentTimeMillis();
-
 			int velocityFixedPoint = scanArray(velocityString, velocityArray);
 			int massFixedPoint = scanArray(massString, massArray);
-			int finalFP = velocityFixedPoint + massFixedPoint;
 
 			int[] momentumResultArray = new int[MAX_DIGITS * 2];
 			momentumResultArray = karatsubaMultiply(velocityArray, massArray);
-			System.out.println("sizeResult: " + sizeResult);
-			System.out.println("fixedPoint: " + finalFP);
 			String output = resultToString(momentumResultArray, sizeResult,
 					velocityFixedPoint + massFixedPoint);
 
 			printWriter.write(trimZeros(output));
 			printWriter.write("\n");
-//
-//			long endTime = System.currentTimeMillis();
-//			NumberFormat formatter = new DecimalFormat("#0.00000");
-//			System.out.println("Execution time is "
-//					+ (formatter.format((endTime - startTime) / 1000d))
-//					+ " seconds");
 		}
 		printWriter.close(); // do not forget to use this
 	}
 
+	// z0 = karatsuba(low1,low2)
+	// z1 = karatsuba((low1+high1),(low2+high2))
+	// z2 = karatsuba(high1,high2)
+	// return (z2*10^(2*m2))+((z1-z2-z0)*10^(m2))+(z0)
 	private static int[] karatsubaMultiply(int[] velocityArray, int[] massArray) {
 		// BASE CASE:
 		if ((velocityArray[velocityArray.length - 1] <= CUT_OFF)
@@ -120,14 +109,14 @@ public class Karatsuba {
 			int[] Z2 = karatsubaMultiply(addArrays(lowVelocity, highVelocity),
 					addArrays(lowMass, highMass));
 			
-			int[] R1temp = stringToArray(Integer.toString((int) Math.pow(BASE, (2*splitIndex))));
-			int[] R2temp = stringToArray(Integer.toString((int) Math.pow(BASE, splitIndex)));
-			
+			int[] R1temp = stringToArray(Integer.toString((int) Math.pow(BASE,
+					(2 * splitIndex))));
+			int[] R2temp = stringToArray(Integer.toString((int) Math.pow(BASE,
+					splitIndex)));
+
 			int[] R1 = multArrays(Z1, R1temp);
 			int[] subtractZ1 = subtractArrays(Z2, Z1);
 			int[] totalDiff = subtractArrays(subtractZ1, Z0);
-//			int[] R2 = multArrays((subtractArrays(Z2, subtractArrays(Z1, Z0))),
-//					R2temp);
 			int[] R2 = multArrays(totalDiff, R2temp);
 			int[] R3 = Z0;
 
@@ -153,25 +142,25 @@ public class Karatsuba {
 			}
 			tempResultArray[i + j] += carry;
 		}
-		
-		int x = tempResultArray.length-2;
+
+		int x = tempResultArray.length - 2;
 		Boolean numDigitsFound = false;
-		
-		while (!numDigitsFound && x>=0) {
+
+		while (!numDigitsFound && x >= 0) {
 			if (tempResultArray[x] != 0) {
-				numDigits = x+1;
+				numDigits = x + 1;
 				numDigitsFound = true;
 			}
 			x--;
 		}
-		
-		tempResultArray[tempResultArray.length-1] = numDigits;
+
+		tempResultArray[tempResultArray.length - 1] = numDigits;
 		sizeResult = numDigits;
 		return tempResultArray;
 	}
 
 	private static int[] splitArray(int[] array, int splitIndex, String str) {
-		int[] subArray = new int[MAX_DIGITS + 1];
+		int[] subArray = new int[MAX_DIGITS];
 		int digitCounter = 0;
 		if (str.equals("low")) {
 			for (int i = 0; i < splitIndex; i++) {
@@ -180,7 +169,7 @@ public class Karatsuba {
 			}
 		} else if (str.equals("high")) {
 			for (int i = splitIndex; i < array[array.length - 1]; i++) {
-				subArray[i-splitIndex] = array[i];
+				subArray[i - splitIndex] = array[i];
 				digitCounter++;
 			}
 		}
@@ -194,7 +183,7 @@ public class Karatsuba {
 		int max = Math.max(array1Length, array2Length);
 		int min = Math.min(array1Length, array2Length);
 
-		int[] sumArray = new int[MAX_DIGITS + 1];
+		int[] sumArray = new int[MAX_DIGITS * 2];
 		int numDigits = 0;
 
 		for (int i = 0; i < min; i++) {
@@ -339,4 +328,49 @@ public class Karatsuba {
 		}
 		return (char) (digit - 10 + 'A');
 	}
+
+	/*
+	 * Return: A = A + B * base ^ offset. A[0], B[0] store the length of the
+	 * numbers, digits are stored in reversed order. A[],B[] are arrays of
+	 * constant max-size.
+	 */
+//	private static int[] addWithOffset(int[] A, int[] B, int base, int offset) {
+//		int lenA = A[A.length - 1];
+//		int lenB = B[B.length - 1];
+//		int carry = 0;
+//		int i = 0;
+//		offset++;
+//		int b;
+//		int a;
+//
+//		while (i <= lenB || carry > 0) {
+//			// if (offset > lenA) a = 0;
+//			// else a = A[offset];
+//
+//			a = offset > lenA ? 0 : A[offset];
+//			b = i > lenB ? 0 : B[i];
+//			carry += a + b;
+//
+//			if (carry >= base) {
+//				A[offset] = carry - base;
+//				carry = 1;
+//			} else {
+//				A[offset] = carry;
+//				carry = 0;
+//			}
+//
+//			i++;
+//			offset++;
+//		}
+//
+//		offset--;
+//		while (offset > 1 && A[offset] == 0) {
+//			offset--;
+//			if (offset > lenA) {
+//				A[0] = offset;
+//			}
+//		}
+//		return A;
+//	}
+
 }
